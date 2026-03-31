@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.venv/
+.litellm.log
+.litellm.pid
+.DS_Store
+*.log
+.claude/
