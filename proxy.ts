@@ -1,13 +1,21 @@
 /**
- * Minimal Anthropic→OpenAI API translator proxy for Novita AI.
- * Translates Claude Code's Anthropic API requests into OpenAI format.
+ * Minimal Anthropic->OpenAI-compatible API translator proxy.
+ * Translates Claude Code Anthropic API requests into OpenAI format.
  */
 
-const NOVITA_API_KEY = process.env.NOVITA_API_KEY || "";
-const NOVITA_BASE = "https://api.novita.ai/openai/v1";
+const API_KEY =
+  process.env.API_KEY ||
+  process.env.LLM_API_KEY ||
+  process.env.OPENAI_API_KEY ||
+  "";
+const API_BASE_URL =
+  process.env.API_BASE_URL ||
+  process.env.LLM_BASE_URL ||
+  process.env.OPENAI_BASE_URL ||
+  "https://api.openai.com/v1";
 const PORT = Number(process.env.PROXY_PORT) || 4010;
 
-// Map Anthropic model names → Novita model IDs
+// Map Anthropic model names -> OpenAI-compatible model IDs
 const MODEL_MAP: Record<string, string> = {
   "claude-opus-4-6":            "qwen/qwen3.5-397b-a17b",
   "claude-sonnet-4-6":          "qwen/qwen3-235b-a22b-thinking-2507",
@@ -249,12 +257,12 @@ const server = Bun.serve({
     if (url.pathname === "/v1/messages" && req.method === "POST") {
       const body = await req.json();
       const inputModel = body.model;
-      const novitaModel = mapModel(inputModel);
+      const providerModel = mapModel(inputModel);
       const stream = body.stream === true;
 
       // Build OpenAI request
       const oaiBody: any = {
-        model: novitaModel,
+        model: providerModel,
         messages: convertMessages(body.messages, body.system),
         max_tokens: body.max_tokens || 4096,
         temperature: body.temperature ?? 0.7,
@@ -266,23 +274,23 @@ const server = Bun.serve({
       }
       if (body.top_p != null) oaiBody.top_p = body.top_p;
 
-      console.log(`[proxy] ${inputModel} -> ${novitaModel}${stream ? " (stream)" : ""}`);
+      console.log(`[proxy] ${inputModel} -> ${providerModel}${stream ? " (stream)" : ""}`);
 
-      const oaiResp = await fetch(`${NOVITA_BASE}/chat/completions`, {
+      const oaiResp = await fetch(`${API_BASE_URL}/chat/completions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${NOVITA_API_KEY}`,
+          "Authorization": `Bearer ${API_KEY}`,
         },
         body: JSON.stringify(oaiBody),
       });
 
       if (!oaiResp.ok) {
         const errText = await oaiResp.text();
-        console.error(`[proxy] Novita error ${oaiResp.status}: ${errText}`);
+        console.error(`[proxy] Provider error ${oaiResp.status}: ${errText}`);
         return new Response(JSON.stringify({
           type: "error",
-          error: { type: "api_error", message: `Novita API error: ${oaiResp.status} ${errText}` },
+          error: { type: "api_error", message: `Provider API error: ${oaiResp.status} ${errText}` },
         }), { status: oaiResp.status, headers: { "Content-Type": "application/json" } });
       }
 
@@ -346,7 +354,8 @@ const server = Bun.serve({
   },
 });
 
-console.log(`Novita AI proxy running on http://localhost:${PORT}`);
+console.log(`OpenAI-compatible proxy running on http://localhost:${PORT}`);
+console.log(`Upstream base URL: ${API_BASE_URL}`);
 console.log(`Model mapping:`);
 for (const [k, v] of Object.entries(MODEL_MAP)) {
   console.log(`  ${k} -> ${v}`);
