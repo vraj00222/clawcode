@@ -1,12 +1,8 @@
 # Clawcode
 
-Because why pay for Claude when you can duct-tape open-source models to its CLI and pretend everything's fine?
-
 This repo lets you run the Claude Code CLI locally with **any OpenAI-compatible API provider** — Novita AI, Together AI, Groq, OpenRouter, your self-hosted vLLM, your cousin's GPU in the basement, whatever.
 
 ## What is this?
-
-Claude Code is Anthropic's fancy terminal AI assistant. It's built to talk exclusively to Claude models via the Anthropic API. This repo provides the build tooling and a translation proxy so you can point it at literally any other LLM provider instead.
 
 Does it work perfectly? No. Does it work? Surprisingly, yes.
 
